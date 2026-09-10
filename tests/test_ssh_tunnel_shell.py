@@ -1250,6 +1250,10 @@ def test_no_stale_tests_ssh_tunnel_sh_path_references():
     candidates.extend(REPO_ROOT.glob("tests/*.example"))
     candidates.extend(REPO_ROOT.glob("shared/*.sh"))
     candidates.extend(REPO_ROOT.glob("shared/*.example"))
+    # openspec/ 只存在于开发仓——公开发布的快照会剔掉它（db-llm-publish 的
+    # DROP_PATHS）。那里 glob 落空返回空列表、不报错，本断言照常跑其余候选，
+    # 少扫的正是不存在的东西。MUST NOT 因为「公开仓里没这个目录」就删掉这一行：
+    # 删了会让开发仓真的少一块覆盖。
     candidates.extend(REPO_ROOT.glob("openspec/architecture/*.md"))
 
     offenders = []
