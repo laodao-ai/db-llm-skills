@@ -1,0 +1,851 @@
+<title>db-llm 操作手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+:root {
+  --bg:        #F4F6F4;
+  --surface:   #FFFFFF;
+  --surface-2: #EDF0EE;
+  --ink:       #171C1A;
+  --ink-2:     #3D4744;
+  --muted:     #66716D;
+  --rule:      #D5DBD7;
+  --rule-soft: #E4E8E5;
+  --ops:       #1C5A55;
+  --ops-soft:  #E2EFEC;
+  --ro:        #96591A;
+  --ro-soft:   #F6EBDA;
+  --alert:     #9A2E2A;
+  --alert-soft:#F7E6E4;
+  --shadow:    0 1px 2px rgba(20,32,28,.06), 0 8px 24px -16px rgba(20,32,28,.28);
+
+  --f-display: "IBM Plex Serif", Georgia, "Songti SC", serif;
+  --f-body:    "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --f-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #101513;
+    --surface:   #181E1C;
+    --surface-2: #1F2724;
+    --ink:       #E5EAE7;
+    --ink-2:     #C0C9C5;
+    --muted:     #8E9995;
+    --rule:      #2C3733;
+    --rule-soft: #232C29;
+    --ops:       #63B6AA;
+    --ops-soft:  #16302D;
+    --ro:        #D8A05A;
+    --ro-soft:   #332613;
+    --alert:     #E08078;
+    --alert-soft:#33201E;
+    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #101513;
+  --surface:   #181E1C;
+  --surface-2: #1F2724;
+  --ink:       #E5EAE7;
+  --ink-2:     #C0C9C5;
+  --muted:     #8E9995;
+  --rule:      #2C3733;
+  --rule-soft: #232C29;
+  --ops:       #63B6AA;
+  --ops-soft:  #16302D;
+  --ro:        #D8A05A;
+  --ro-soft:   #332613;
+  --alert:     #E08078;
+  --alert-soft:#33201E;
+  --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.68;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 0;
+  max-width: 1180px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* ---------- sidebar ---------- */
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 34px 20px 34px 28px;
+  border-right: 1px solid var(--rule-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+.rail-mark {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rail-title {
+  font-family: var(--f-display);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: -10px;
+}
+.rail nav { display: flex; flex-direction: column; gap: 1px; }
+.rail nav a {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 8px 5px 0;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13.5px;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+  transition: color .12s, border-color .12s;
+}
+.rail nav a .n {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.rail nav a:hover { color: var(--ink); }
+.rail nav a.on { color: var(--ink); border-left-color: var(--ops); font-weight: 500; }
+.rail nav a.on .n { color: var(--ops); }
+.rail-foot {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--f-mono);
+  line-height: 1.5;
+}
+
+/* ---------- content ---------- */
+main { padding: 46px 44px 120px; min-width: 0; }
+
+.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 22px; margin-bottom: 34px; }
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+h1 {
+  font-family: var(--f-display);
+  font-size: clamp(30px, 4.4vw, 42px);
+  font-weight: 600;
+  line-height: 1.14;
+  letter-spacing: -.015em;
+  margin: 12px 0 10px;
+  text-wrap: balance;
+}
+.standfirst {
+  font-size: 16.5px;
+  color: var(--ink-2);
+  max-width: 62ch;
+  margin: 0;
+}
+.standfirst strong { color: var(--ink); font-weight: 600; }
+
+section { margin-top: 56px; scroll-margin-top: 24px; }
+h2 {
+  font-family: var(--f-display);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+h2 .n {
+  font-family: var(--f-mono);
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+h3 {
+  font-family: var(--f-body);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 34px 0 8px;
+  letter-spacing: -.005em;
+}
+h4 {
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 26px 0 8px;
+}
+p { max-width: 68ch; margin: 0 0 14px; }
+a { color: var(--ops); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+strong { font-weight: 600; }
+code {
+  font-family: var(--f-mono);
+  font-size: .875em;
+  background: var(--surface-2);
+  padding: 1.5px 5px;
+  border-radius: 3px;
+  color: var(--ink);
+}
+ul, ol { max-width: 68ch; padding-left: 20px; margin: 0 0 16px; }
+li { margin-bottom: 7px; }
+li::marker { color: var(--muted); }
+
+/* ---------- tables ---------- */
+.tw { overflow-x: auto; margin: 18px 0 22px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 460px; }
+th {
+  text-align: left;
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 0 14px 8px 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: bottom;
+}
+td {
+  padding: 11px 14px 11px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+  line-height: 1.55;
+}
+tr:last-child td { border-bottom: none; }
+td:first-child, th:first-child { padding-left: 0; }
+
+/* ---------- code block ---------- */
+pre {
+  font-family: var(--f-mono);
+  font-size: 12.8px;
+  line-height: 1.62;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-left: 2px solid var(--rule);
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 0 0 18px;
+  color: var(--ink-2);
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+pre .c { color: var(--muted); }
+
+/* ---------- figures ---------- */
+figure { margin: 26px 0 30px; }
+figure svg { display: block; width: 100%; max-width: 100%; height: auto; }
+.figwrap { overflow-x: auto; }
+figcaption {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 10px;
+  max-width: 68ch;
+  line-height: 1.55;
+  border-left: 2px solid var(--rule);
+  padding-left: 11px;
+}
+
+/* ---------- skill cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); margin: 20px 0 26px; }
+.card { background: var(--surface); padding: 15px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+.card .lane {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.card.ops .lane { color: var(--ops); }
+.card.ro  .lane { color: var(--ro); }
+.card.tool .lane { color: var(--muted); }
+.card .nm { font-family: var(--f-mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+.card p { font-size: 13.2px; color: var(--ink-2); margin: 0; line-height: 1.55; }
+
+/* ---------- callouts ---------- */
+.note {
+  border-left: 2px solid var(--ops);
+  background: var(--ops-soft);
+  padding: 13px 16px;
+  margin: 20px 0;
+  font-size: 14.2px;
+  max-width: 68ch;
+}
+.note.hard { border-left-color: var(--alert); background: var(--alert-soft); }
+.note.ro { border-left-color: var(--ro); background: var(--ro-soft); }
+.note p:last-child { margin-bottom: 0; }
+.note .lbl {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ops);
+}
+.note.hard .lbl { color: var(--alert); }
+.note.ro .lbl { color: var(--ro); }
+
+/* ---------- exit codes ---------- */
+.codes { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 20px; }
+.codes div {
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  border: 1px solid var(--rule);
+  padding: 5px 10px;
+  background: var(--surface);
+}
+.codes b { color: var(--ops); font-weight: 600; }
+
+/* ---------- counts strip ---------- */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid var(--rule);
+  margin: 26px 0 10px;
+  background: var(--surface);
+}
+.strip div { padding: 12px 18px; border-right: 1px solid var(--rule-soft); flex: 1 1 auto; }
+.strip div:last-child { border-right: none; }
+.strip .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.strip .v { font-family: var(--f-display); font-size: 21px; font-weight: 600; line-height: 1.3; }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .rail {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+    padding: 22px 22px 16px;
+  }
+  .rail nav { flex-direction: row; flex-wrap: wrap; gap: 2px 4px; }
+  .rail nav a { border-left: none; border-bottom: 2px solid transparent; padding: 4px 8px; }
+  .rail nav a.on { border-left-color: transparent; border-bottom-color: var(--ops); }
+  .rail-foot { margin-top: 12px; }
+  main { padding: 30px 22px 90px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+a:focus-visible, .rail nav a:focus-visible { outline: 2px solid var(--ops); outline-offset: 2px; }
+</style>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="rail-mark">db-llm</div>
+    <div class="rail-title">操作手册</div>
+    <nav id="toc">
+      <a href="#which"><span class="n">01</span>我该用哪个</a>
+      <a href="#install"><span class="n">02</span>安装与升级</a>
+      <a href="#ro"><span class="n">03</span>只读线</a>
+      <a href="#security"><span class="n">04</span>凭据与边界</a>
+      <a href="#stuck"><span class="n">05</span>卡住了？速查</a>
+      <a href="#ref"><span class="n">06</span>速查表</a>
+    </nav>
+    <div class="rail-foot">
+      5 skills<br>
+      ADR 0003–0008<br>
+      Apache-2.0
+    </div>
+  </aside>
+
+  <main>
+    <header class="masthead">
+      <div class="eyebrow"><span>大模型访问 PostgreSQL</span><span>给人读</span><span>2026-09-10</span></div>
+      <h1>五个 skill，一条只读通道</h1>
+      <p class="standfirst">这份文档只回答人的三个问题：<strong>我该用哪个 · 按什么顺序 · 卡住了在哪一格</strong>。各 <code>SKILL.md</code> 是给 Claude / Codex 读的操作手册（参数表、退出码、MUST NOT），人不必看。姊妹仓 <code>laodao-ai/pg-ops-skills</code> 管「把 PostgreSQL 服务本身立起来并运维」，两仓经文档级消费关系相连（ADR-0008），无代码依赖。</p>
+    </header>
+
+    <div class="strip">
+      <div><div class="k">skill 数</div><div class="v">5 个</div></div>
+      <div><div class="k">真相源</div><div class="v">消费仓 <code>.dbmeta/</code></div></div>
+      <div><div class="k">特权 SQL</div><div class="v">只生成</div></div>
+    </div>
+
+    <!-- ============ 01 ============ -->
+    <section id="which">
+      <h2><span class="n">01</span>我该用哪个</h2>
+
+      <figure>
+        <div class="figwrap">
+        <svg viewBox="0 0 900 430" role="img" aria-label="决策树：按你要做的事分岔到只读通道四个 skill 或升级 skill">
+          <!-- root -->
+          <rect x="352" y="14" width="196" height="40" stroke="currentColor" stroke-width="2" style="fill:var(--surface)"/>
+          <text x="450" y="39" text-anchor="middle" font-size="13.5" fill="currentColor" font-weight="600">你要做什么？</text>
+
+          <!-- trunk -->
+          <line x1="450" y1="54" x2="450" y2="74" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="480" y1="74" x2="790" y2="74" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="480" y1="74" x2="480" y2="104" stroke-width="1.5" marker-end="url(#ar-ro)" style="stroke:var(--ro)"/>
+          <line x1="790" y1="74" x2="790" y2="104" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <!-- ro branch -->
+          <text x="480" y="122" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--ro)">连一个已有的库</text>
+          <rect x="364" y="140" width="232" height="46" stroke-width="2" style="fill:var(--surface);stroke:var(--ro)"/>
+          <text x="378" y="160" font-size="12.5" style="font-family:var(--f-mono);fill:var(--ro)">/pg-readonly-setup</text>
+          <text x="378" y="176" font-size="11.5" fill="currentColor" opacity=".75">通道没通 / SCHEMAS 改了</text>
+          <line x1="480" y1="186" x2="480" y2="204" stroke-width="1.5" marker-end="url(#ar-ro)" style="stroke:var(--ro)"/>
+          <rect x="364" y="206" width="232" height="46" stroke-width="1" style="fill:var(--surface);stroke:var(--ro)"/>
+          <text x="378" y="226" font-size="12.5" style="font-family:var(--f-mono);fill:var(--ro)">/pg-dict</text>
+          <text x="378" y="242" font-size="11.5" fill="currentColor" opacity=".75">要看表结构 / 刷新字典</text>
+          <line x1="480" y1="252" x2="480" y2="270" stroke-width="1.5" marker-end="url(#ar-ro)" style="stroke:var(--ro)"/>
+          <rect x="364" y="272" width="232" height="46" stroke-width="1" style="fill:var(--surface);stroke:var(--ro)"/>
+          <text x="378" y="292" font-size="12.5" style="font-family:var(--f-mono);fill:var(--ro)">/pg-query-ro</text>
+          <text x="378" y="308" font-size="11.5" fill="currentColor" opacity=".75">要查数据</text>
+          <line x1="480" y1="318" x2="480" y2="336" stroke-width="1.5" marker-end="url(#ar-ro)" style="stroke:var(--ro)"/>
+          <rect x="364" y="338" width="232" height="46" stroke-width="1" style="fill:var(--surface);stroke:var(--ro)"/>
+          <text x="378" y="358" font-size="12.5" style="font-family:var(--f-mono);fill:var(--ro)">/pg-sql-check</text>
+          <text x="378" y="374" font-size="11.5" fill="currentColor" opacity=".75">要校验一条 SQL</text>
+          <text x="366" y="402" font-size="11.5" style="fill:var(--ro)">四者串联，入口只有第一个</text>
+
+          <!-- tool branch -->
+          <text x="790" y="122" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">skill 本身要更新</text>
+          <rect x="674" y="140" width="212" height="46" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="688" y="160" font-size="12.5" fill="currentColor" style="font-family:var(--f-mono)">/db-llm-upgrade</text>
+          <text x="688" y="176" font-size="11.5" fill="currentColor" opacity=".75">pull → setup → 显示版本</text>
+
+          <line x1="674" y1="230" x2="886" y2="230" stroke="currentColor" stroke-width="1" opacity=".3"/>
+          <text x="674" y="252" font-size="11.5" fill="currentColor" opacity=".75">人只说一句话。</text>
+          <text x="674" y="270" font-size="11.5" fill="currentColor" opacity=".75">不要手动一个个跑前置 skill——</text>
+          <text x="674" y="288" font-size="11.5" fill="currentColor" opacity=".75">编排是 skill 自己的活。</text>
+        </svg>
+        </div>
+        <figcaption>粗边框的是实际入口：<code>pg-readonly-setup</code>，其余由它自己编排。</figcaption>
+      </figure>
+
+      <h3>一句话触发表</h3>
+      <p>在<strong>项目仓根目录</strong>对 Claude / Codex 说：</p>
+      <div class="tw">
+      <table>
+        <thead><tr><th>你想做的事</th><th>说这句</th><th>会跑的 skill</th></tr></thead>
+        <tbody>
+          <tr><td>新仓接入只读通道</td><td>「配置只读通道」/「接入向导」</td><td><code>pg-readonly-setup</code></td></tr>
+          <tr><td>生成 / 刷新数据字典</td><td>「生成数据字典」/「再生字典」</td><td><code>pg-dict</code></td></tr>
+          <tr><td>查一下数据</td><td>「看看这张表有什么」/「跑个 SQL」</td><td><code>pg-query-ro</code></td></tr>
+          <tr><td>校验一条 SQL 对不对得上真实 schema</td><td>「校验这条 SQL」/「这条语句列名对不对」</td><td><code>pg-sql-check</code></td></tr>
+          <tr><td>升级 skill 套件</td><td>「升级 db-llm」</td><td><code>db-llm-upgrade</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <!-- ============ 02 ============ -->
+    <section id="install">
+      <h2><span class="n">02</span>安装与升级</h2>
+<pre><code><span class="c"># 首次：运行 checkout 是真 clone，不软链到开发仓</span>
+git clone https://github.com/laodao-ai/db-llm-skills.git ~/.skills/db-llm-skills
+bash ~/.skills/db-llm-skills/setup.sh          <span class="c"># 幂等；Unix symlink，Windows 拷贝</span></code></pre>
+      <p><code>setup.sh</code> 把 5 个 skill symlink 到 <code>~/.claude/skills/</code> 与 <code>~/.codex/skills/</code>，任何 PG 项目全局可用。</p>
+      <p>之后升级说「升级 db-llm」即可：<code>git pull --ff-only</code> → <code>setup.sh</code> → 显示版本与最近 5 条变更。</p>
+      <div class="codes">
+        <div><b>0</b> 成功</div>
+        <div><b>1</b> pull 层失败（checkout 不存在 / remote 不匹配 / 非 ff / detached HEAD）</div>
+        <div><b>2</b> setup.sh 失败</div>
+      </div>
+      <div class="note">
+        <span class="lbl">运行 checkout 只读</span>
+        <p>改代码在另一份开发 checkout 里做、push 之后在运行机跑升级。运行 checkout 被改过会导致非 ff，升级会停下报告而<strong>不会</strong>强推。</p>
+      </div>
+    </section>
+
+    <!-- ============ 03 ============ -->
+    <section id="ro">
+      <h2><span class="n">03</span>只读线</h2>
+      <h3>三阶段管线</h3>
+      <p>只读线是一条严格的三段链，<strong>collect 与 render 是两个分开的步骤</strong>（不是管道）——失败能钉到具体一层，且 collect 失败时<strong>零个</strong> <code>.dbmeta/</code> 文件被写。</p>
+
+      <figure>
+        <div class="figwrap">
+        <svg viewBox="0 0 900 330" role="img" aria-label="只读线三阶段管线：配置文件经 config.sh 解析、db-collect.sh 采集 pg_catalog 产出版本化 JSON、pg-dict.sh 编排 render.py 渲染成 dbmeta 文件树，四道校验任一不过则零文件写入">
+          <!-- chain -->
+          <rect x="8" y="40" width="184" height="56" stroke-width="1.5" style="fill:var(--ro-soft);stroke:var(--ro)"/>
+          <text x="20" y="62" font-size="11.5" font-weight="600" style="font-family:var(--f-mono);fill:var(--ro)">.dbllm.env</text>
+          <text x="20" y="79" font-size="11" fill="currentColor">配置 + 唯一凭据 · git-ignored</text>
+          <line x1="192" y1="68" x2="226" y2="68" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="228" y="40" width="184" height="56" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="240" y="62" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">shared/config.sh</text>
+          <text x="240" y="79" font-size="11" font-weight="600" style="fill:var(--alert)">按行解析，从不 source</text>
+          <line x1="412" y1="68" x2="446" y2="68" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="448" y="30" width="184" height="76" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="460" y="52" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">db-collect.sh</text>
+          <text x="460" y="69" font-size="11" fill="currentColor">PGPASSWORD → psql</text>
+          <text x="460" y="88" font-size="11" fill="currentColor" opacity=".75" style="font-family:var(--f-mono)">+ db-collect.sql</text>
+          <line x1="632" y1="68" x2="666" y2="68" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="668" y="40" width="184" height="56" stroke="currentColor" stroke-width="2" style="fill:var(--surface)"/>
+          <text x="680" y="62" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">collect_version=1</text>
+          <text x="680" y="79" font-size="11" fill="currentColor">JSON · 含 requested_schemas</text>
+
+          <!-- down to orchestrator -->
+          <path d="M 760 96 L 760 122 L 300 122 L 300 144" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+          <text x="440" y="116" font-size="11" fill="currentColor" opacity=".7">范围随 payload 走，不走 CLI 开关（ADR-0004）</text>
+
+          <rect x="180" y="146" width="240" height="52" stroke-width="1.5" style="fill:var(--ro-soft);stroke:var(--ro)"/>
+          <text x="192" y="166" font-size="11.5" font-weight="600" style="font-family:var(--f-mono);fill:var(--ro)">pg-dict.sh</text>
+          <text x="192" y="184" font-size="11" fill="currentColor">编排：collect 与 render 两步分开</text>
+          <line x1="420" y1="172" x2="454" y2="172" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="456" y="146" width="184" height="52" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="468" y="166" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">render.py</text>
+          <text x="468" y="184" font-size="11" fill="currentColor">托管块合并</text>
+          <line x1="640" y1="172" x2="674" y2="172" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="676" y="140" width="184" height="64" stroke-width="2" style="fill:var(--surface);stroke:var(--ro)"/>
+          <text x="688" y="160" font-size="11.5" font-weight="600" style="font-family:var(--f-mono);fill:var(--ro)">.dbmeta/</text>
+          <text x="688" y="177" font-size="11" fill="currentColor">tables|views|functions/*.sql</text>
+          <text x="688" y="194" font-size="11" fill="currentColor">README / _relations / _gaps</text>
+
+          <!-- validation gate -->
+          <path d="M 548 198 L 548 224" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+          <rect x="360" y="226" width="380" height="44" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"/>
+          <text x="374" y="246" font-size="12" fill="currentColor" font-weight="600">写盘前四道批量校验（跑遍全部 schema）</text>
+          <text x="374" y="263" font-size="11" fill="currentColor" opacity=".8">标识符契约 · 函数定义存在 · 托管标记碰撞 · 路径包含</text>
+          <path d="M 550 270 L 550 288" stroke-width="1.5" marker-end="url(#ar)" style="stroke:var(--alert)"/>
+          <rect x="360" y="290" width="380" height="30" stroke-width="1.5" style="fill:var(--alert-soft);stroke:var(--alert)"/>
+          <text x="374" y="310" font-size="12" font-weight="600" style="fill:var(--alert)">任一不过 → CollectFormatError → 零文件写入或删除</text>
+        </svg>
+        </div>
+        <figcaption>三条不变量：范围随 payload 走（ADR-0004）；托管块内每次重写、<strong>块外人工注记逐字保留</strong>；schema 没变时连跑两次逐字节一致。反复被判「已更新」却看不出差异 ⇒ 那是 bug。</figcaption>
+      </figure>
+
+      <h3>pg-readonly-setup：可重入的单一入口</h3>
+      <p>它是<strong>首次接入与重跑同一个入口</strong>。第一步永远是跑一次零 DB、零网络的静态预检，由预检定位「从哪一阶段接话」。</p>
+
+      <figure>
+        <div class="figwrap">
+        <svg viewBox="0 0 900 300" role="img" aria-label="pg-readonly-setup 阶段机：preflight 输出 stage，依次经 deps、gitignore、config、provision、collect、smoke 到终态，provision 阶段可能因需要 DBA 执行 setup.sql 而循环">
+          <rect x="8" y="60" width="128" height="66" stroke="currentColor" stroke-width="2" style="fill:var(--surface)"/>
+          <text x="20" y="82" font-size="11.5" fill="currentColor" font-weight="600" style="font-family:var(--f-mono)">preflight.sh</text>
+          <text x="20" y="99" font-size="11" fill="currentColor">零 DB · 零网络</text>
+          <text x="20" y="116" font-size="11" fill="currentColor" opacity=".75">checks / stage / blockers</text>
+          <line x1="136" y1="93" x2="164" y2="93" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="166" y="66" width="112" height="54" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="178" y="86" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">deps</text>
+          <text x="178" y="103" font-size="10.5" fill="currentColor" opacity=".75">缺 psql / python3</text>
+          <text x="178" y="117" font-size="10.5" style="fill:var(--alert)">只给指令，不自动装</text>
+          <line x1="278" y1="93" x2="300" y2="93" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="302" y="66" width="112" height="54" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="314" y="86" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">gitignore</text>
+          <text x="314" y="105" font-size="10.5" fill="currentColor" opacity=".75">自动写入，不需确认</text>
+          <line x1="414" y1="93" x2="436" y2="93" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="438" y="66" width="112" height="54" stroke-width="1.5" style="fill:var(--ro-soft);stroke:var(--ro)"/>
+          <text x="450" y="86" font-size="11.5" style="font-family:var(--f-mono);fill:var(--ro)">config</text>
+          <text x="450" y="103" font-size="10.5" fill="currentColor">建 .dbmeta/ + 模版</text>
+          <text x="450" y="117" font-size="10.5" font-weight="600" style="fill:var(--ro)">坐席 1：人填</text>
+          <line x1="550" y1="93" x2="572" y2="93" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="574" y="56" width="126" height="74" stroke-width="2" style="fill:var(--ro-soft);stroke:var(--ro)"/>
+          <text x="586" y="76" font-size="11.5" font-weight="600" style="font-family:var(--f-mono);fill:var(--ro)">provision</text>
+          <text x="586" y="93" font-size="10.5" fill="currentColor">五步编排</text>
+          <text x="586" y="108" font-size="10.5" fill="currentColor">generate → 连接 → verify</text>
+          <text x="586" y="124" font-size="10.5" font-weight="600" style="fill:var(--ro)">坐席 2：DBA</text>
+
+          <!-- loop -->
+          <path d="M 637 56 L 637 30 L 760 30 L 760 56" fill="none" stroke-width="1.5" marker-end="url(#ar)" style="stroke:var(--alert)"/>
+          <text x="646" y="24" font-size="11" style="fill:var(--alert)">exit 2 · 交 DBA 执行 setup.sql 后重跑</text>
+
+          <line x1="700" y1="93" x2="722" y2="93" stroke-width="1.5" marker-end="url(#ar-ops)" style="stroke:var(--ops)"/>
+          <text x="706" y="84" font-size="10" style="fill:var(--ops)">exit 0</text>
+
+          <rect x="724" y="66" width="80" height="54" stroke-width="1" style="fill:var(--surface);stroke:var(--ops)"/>
+          <text x="734" y="86" font-size="11.5" style="font-family:var(--f-mono);fill:var(--ops)">collect</text>
+          <text x="734" y="105" font-size="10.5" fill="currentColor">pg-dict.sh</text>
+          <line x1="804" y1="93" x2="822" y2="93" stroke-width="1.5" marker-end="url(#ar-ops)" style="stroke:var(--ops)"/>
+          <rect x="824" y="66" width="68" height="54" stroke-width="1" style="fill:var(--surface);stroke:var(--ops)"/>
+          <text x="834" y="86" font-size="11.5" style="font-family:var(--f-mono);fill:var(--ops)">smoke</text>
+          <text x="834" y="105" font-size="10.5" fill="currentColor">SELECT 1</text>
+
+          <!-- reentry rules -->
+          <rect x="8" y="160" width="884" height="128" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="24" y="182" font-size="12.5" fill="currentColor" font-weight="600">三条重入规则（静态预检看不到 SCHEMAS 与密码值的变化，所以 stage 只是起点建议）</text>
+          <line x1="24" y1="192" x2="876" y2="192" stroke="currentColor" stroke-width="1" opacity=".25"/>
+          <text x="24" y="214" font-size="11.5" style="font-family:var(--f-mono);fill:var(--ro)">①</text>
+          <text x="44" y="214" font-size="11.5" fill="currentColor">SCHEMAS 改了 / 密码漂移 / 明确要求重跑供给 ⇒ 无视静态起点，从 provision 起跑；SCHEMAS 改了时无论退出码都停在「交 DBA」，本次不进采集。</text>
+          <text x="24" y="242" font-size="11.5" style="font-family:var(--f-mono);fill:var(--ro)">②</text>
+          <text x="44" y="242" font-size="11.5" fill="currentColor">冒烟或采集因连接 / 认证类错误失败 ⇒ 回到 provision，而不是只转述错误。</text>
+          <text x="24" y="270" font-size="11.5" style="font-family:var(--f-mono);fill:var(--ro)">③</text>
+          <text x="44" y="270" font-size="11.5" fill="currentColor">供给报「只读通道可用」之后 ⇒ 必须接着采集（即使字典已存在）再冒烟——SCHEMAS 同时决定授权范围与采集范围，二者不许脱节。</text>
+        </svg>
+        </div>
+        <figcaption>预检的 <code>stage</code> 是<strong>起点建议</strong>，不是权威判定——权威判定来自实际跑一次底层脚本的退出码。密码字段在预检 JSON 里只呈现 <code>absent</code> / <code>placeholder</code> / <code>set</code> 三态，永远不含值。</figcaption>
+      </figure>
+
+      <div class="note ro">
+        <span class="lbl">跑 2~3 次是设计，不是失败</span>
+        <p><strong>连接信息已填、只差角色 → 2 次</strong>：① 停在「交 DBA 执行 <code>setup.sql</code>」，② 走完校验打印「只读通道可用」。</p>
+        <p><strong>全新项目 → 3 次</strong>：① 生成 <code>setup.sql</code> 并写回密码，停在「连接信息还是 <code>CHANGE_ME</code>」；② 停在「角色不存在」；③ 走完。</p>
+      </div>
+
+      <h4>ro-verify.sh 的六面有效权限审计</h4>
+      <p>消费仓 <strong>MUST NOT</strong> 为这些面另写自己的守卫脚本。</p>
+      <ol>
+        <li>角色标志（<code>SUPERUSER</code>/<code>CREATEDB</code>/<code>BYPASSRLS</code>/<code>REPLICATION</code>/<code>CREATEROLE</code>）与成员关系</li>
+        <li>schema <code>CREATE</code> / 库级 <code>CREATE TEMP</code></li>
+        <li>任何表的非 SELECT 权限、任何序列的 <code>USAGE</code>/<code>UPDATE</code>（<strong>跨全部 schema</strong>，不限 <code>SCHEMAS</code>）</li>
+        <li>范围外 schema <code>USAGE</code> / 表 <code>SELECT</code> 残留</li>
+        <li>对象所有权、<code>dblink*</code>/<code>postgres_fdw</code> 逃逸面</li>
+        <li><code>PUBLIC</code> 伪角色复核 + <strong>SECURITY DEFINER 函数</strong>对 PUBLIC 或只读角色开放 <code>EXECUTE</code></li>
+      </ol>
+
+      <h3>pg-dict：字典长什么样</h3>
+<pre><code>.dbmeta/
+├── .dbllm.env               <span class="c"># 配置 + 唯一凭据（git 忽略）</span>
+├── .dbllm.env.example       <span class="c"># 模板（git 追踪）</span>
+├── README.md                   <span class="c"># 总入口：schema 清单 + 对象计数 + 缺注释计数</span>
+├── rules.md                    <span class="c"># 唯一手写真相件，render 永不创建/修改/删除</span>
+├── _relations.md               <span class="c"># 派生语义：逻辑关联 / 枚举 / 敏感列（含 erDiagram）</span>
+├── _gaps.md                    <span class="c"># 缺注释缺口报告（每次整文件重写）</span>
+├── _relations.candidates.yaml  <span class="c"># 推导候选（生成件，供人 review）</span>
+├── _relations.confirmed.yaml   <span class="c"># 人工确认（git 追踪，render 只读不写）</span>
+├── _relations.pending.sql      <span class="c"># 待执行的 COMMENT 回写 SQL（不会自动执行）</span>
+└── &lt;schema&gt;/
+    ├── README.md               <span class="c"># 该 schema 索引</span>
+    ├── _collect.json           <span class="c"># 机器事实切片</span>
+    ├── tables/&lt;table&gt;.sql      <span class="c"># 可执行 DDL，不是叙述文字</span>
+    ├── views/&lt;view&gt;.sql
+    └── functions/&lt;fn&gt;.sql      <span class="c"># 一文件一名字，一块一重载</span></code></pre>
+      <div class="note hard">
+        <span class="lbl">.gitignore 的两条硬要求</span>
+        <p>消费项目<strong>不得整体忽略</strong> <code>.dbmeta/</code>——<code>.dbllm.env.example</code> 与 <code>_relations.confirmed.yaml</code> 需要 git 追踪；<strong>必须</strong>忽略 <code>.dbllm.env</code>、<code>.dbmeta/db-readonly/</code>（供给产物含明文口令）与 <code>build/</code>（查询结果含业务数据）。</p>
+      </div>
+
+      <h4>关系推导：双路推导 → 人工确认 → 人工落库</h4>
+      <p>pg-dict <strong>不自动写 DB</strong>，写 <code>COMMENT</code> 落库永远是人的动作。</p>
+
+      <figure>
+        <div class="figwrap">
+        <svg viewBox="0 0 900 150" role="img" aria-label="关系推导三段流程：列名模式与 COMMENT 文本双路推导出候选文件，人工搬进确认文件，生成待执行 SQL 由人落库，下次再生识别约定格式后进入关系文档">
+          <rect x="8" y="42" width="150" height="52" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="20" y="62" font-size="11.5" fill="currentColor" font-weight="600">双路推导</text>
+          <text x="20" y="79" font-size="10.5" fill="currentColor" opacity=".8">列名模式 + COMMENT 文本</text>
+          <line x1="158" y1="68" x2="184" y2="68" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="186" y="42" width="164" height="52" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="198" y="62" font-size="10.5" fill="currentColor" style="font-family:var(--f-mono)">candidates.yaml</text>
+          <text x="198" y="79" font-size="10.5" fill="currentColor" opacity=".8">每次 regen 全量重写</text>
+          <line x1="350" y1="68" x2="376" y2="68" stroke-width="1.5" marker-end="url(#ar-ro)" style="stroke:var(--ro)"/>
+          <text x="356" y="58" font-size="10" style="fill:var(--ro)">人搬</text>
+
+          <rect x="378" y="42" width="164" height="52" stroke-width="1.5" style="fill:var(--ro-soft);stroke:var(--ro)"/>
+          <text x="390" y="62" font-size="10.5" style="font-family:var(--f-mono);fill:var(--ro)">confirmed.yaml</text>
+          <text x="390" y="79" font-size="10.5" fill="currentColor" opacity=".8">人工维护件，只读不写</text>
+          <line x1="542" y1="68" x2="568" y2="68" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+          <rect x="570" y="42" width="150" height="52" stroke="currentColor" stroke-width="1" style="fill:var(--surface)"/>
+          <text x="582" y="62" font-size="10.5" fill="currentColor" style="font-family:var(--f-mono)">pending.sql</text>
+          <text x="582" y="79" font-size="10.5" fill="currentColor" opacity=".8">COMMENT ON COLUMN …</text>
+          <line x1="720" y1="68" x2="746" y2="68" stroke-width="1.5" marker-end="url(#ar-ro)" style="stroke:var(--ro)"/>
+          <text x="722" y="58" font-size="10" style="fill:var(--ro)">人落库</text>
+
+          <rect x="748" y="42" width="144" height="52" stroke-width="2" style="fill:var(--surface);stroke:var(--ro)"/>
+          <text x="760" y="62" font-size="11.5" font-weight="600" style="fill:var(--ro)">库内 COMMENT</text>
+          <text x="760" y="79" font-size="10.5" fill="currentColor" opacity=".8">下次 regen 自动识别</text>
+
+          <path d="M 820 94 L 820 122 L 300 122 L 300 104" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+          <text x="470" y="118" font-size="10.5" fill="currentColor" opacity=".75">识别后进入 _relations.md，候选与确认条目不再重复出现</text>
+        </svg>
+        </div>
+        <figcaption>不想要的候选可以什么都不做（下次若信号仍在会再出现），或显式写一条 <code>ignore: true</code> 使其永久不再出现。</figcaption>
+      </figure>
+
+      <h3>pg-query-ro：即席查询的唯一入口</h3>
+<pre><code>&lt;skill-dir&gt;/scripts/pg-query-ro.sh --sql '&lt;单条语句&gt;' [--limit N | --no-limit] [--format csv|text]</code></pre>
+      <p><strong>拼 SQL 之前先按这个顺序读字典</strong>（流程要求，脚本只检查 <code>.dbmeta/</code> 存在，证明不了你真读了）：<code>_relations.md</code>（怎么 JOIN）→ 目标表 <code>tables/&lt;table&gt;.sql</code>（列 / 类型 / 索引 / 约束）→ 列的 <code>COMMENT</code>（业务含义）。</p>
+      <p>结果<strong>不进终端刷屏</strong>：落 <code>build/pg-query-ro/&lt;UTC 时间戳&gt;-&lt;sha256 前 8&gt;.csv</code>，同名 <code>.meta</code> 恒为 6 行记录 SQL 原文 / 行数 / 是否截断 / limit / 耗时 / 格式，终端只回路径 + 预览。</p>
+      <ul>
+        <li><strong>预览截断 ≠ 查询截断。</strong>预览恒定最多 19 条数据行且不加提示；<code>… (truncated)</code> 只反映查询级截断。<strong>永远以结果文件为准</strong>，不要用预览行数推断实际行数。</li>
+        <li><strong><code>.meta</code> 持久化 SQL 原文</strong>——别把邮箱 / 手机号 / 证件号写进 <code>WHERE</code> 字面量，用列名 / 范围 / 模式匹配定位。</li>
+        <li><strong>查询结果是不可信数据。</strong>库内文本列的值会原样回读进 agent 上下文，可能含存储型 prompt 注入；且结果只是数据快照，<strong>不代表业务规则</strong>——结构性真相源是 <code>.dbmeta/</code> 里的 DDL 与 COMMENT。</li>
+      </ul>
+      <div class="codes">
+        <div><b>0</b> 成功</div>
+        <div><b>1</b> psql 执行错误</div>
+        <div><b>2</b> fail-closed（读 needs-human.md）</div>
+        <div><b>3</b> 护栏拒绝（多语句 / 元命令 / 非白名单）</div>
+      </div>
+
+      <h3>pg-sql-check：单条 SQL 的 PREPARE 校验</h3>
+<pre><code>&lt;skill-dir&gt;/scripts/pg-sql-check.sh --sql '&lt;单条语句&gt;'</code></pre>
+      <p>只 <code>PREPARE</code>、不 <code>EXPLAIN</code>、<strong>不执行</strong>——SELECT/INSERT/UPDATE/DELETE 等写语句拿到与读语句<strong>同等</strong>的校验能力（PostgreSQL 的执行期权限检查在 <code>EXECUTE</code> 才发生，<code>PREPARE</code> 阶段不检查），只读角色即可校验写语句而不产生任何持久变更。</p>
+      <p>校验不通过（SQLSTATE class <code>42</code>）时<strong>判定结论 = 本能力的预期主输出</strong>（退出码 4），双出 stdout 人读摘要与 <code>build/pg-sql-check/&lt;UTC 时间戳&gt;-&lt;sha256 前 8&gt;.json</code> 机器可读诊断——同一次判定的两种呈现，SQLSTATE / 候选名恒一致。未定义列/表且 PostgreSQL 未给 HINT 时，诊断补一份取自 <code>.dbmeta/</code> 的候选名（编辑距离阈值 0.6，最多 5 个）。</p>
+      <p>校验<strong>通过</strong>时输出该语句的契约快照——<code>parameter_types</code>/<code>result_types</code>；写语句无结果列时 <code>result_types</code> 在 JSON 里是 <code>null</code>（不是 <code>[]</code>，不是缺字段）。</p>
+      <div class="codes">
+        <div><b>0</b> 校验通过</div>
+        <div><b>1</b> 硬错误（版本 &lt; 16 / transaction 池拓扑 / 占位符类型推断不出）</div>
+        <div><b>2</b> fail-closed（字典缺失 / 凭据未就绪 / 权限不足）</div>
+        <div><b>3</b> 护栏拒绝（多语句 / 元命令）</div>
+        <div><b>4</b> <strong>校验不通过</strong>——SQL 对不上真实 schema，这是正常主输出</div>
+      </div>
+    </section>
+
+    <!-- ============ 04 ============ -->
+    <section id="security">
+      <h2><span class="n">04</span>凭据与边界</h2>
+
+      <figure>
+        <div class="figwrap">
+        <svg viewBox="0 0 900 300" role="img" aria-label="凭据边界三分：模型只看得到非密钥配置与密码三态，交接文档与生产 env 只有人看得见，特权 SQL 只有 DBA 执行，本仓任何组件永不执行特权语句">
+          <rect x="8" y="20" width="284" height="164" stroke="currentColor" stroke-width="1.5" style="fill:var(--surface)"/>
+          <text x="24" y="44" font-size="13" fill="currentColor" font-weight="600">模型看得见</text>
+          <line x1="24" y1="54" x2="276" y2="54" stroke="currentColor" stroke-width="1" opacity=".25"/>
+          <text x="24" y="76" font-size="11.5" fill="currentColor">host / port / dbname</text>
+          <text x="24" y="93" font-size="11" fill="currentColor" opacity=".7">非密钥配置信息</text>
+          <text x="24" y="118" font-size="11.5" fill="currentColor">密码字段的三态</text>
+          <text x="24" y="135" font-size="11" style="font-family:var(--f-mono);fill:var(--ro)">absent / placeholder / set</text>
+          <text x="24" y="160" font-size="11.5" fill="currentColor">工具脚本的 stdout</text>
+          <text x="24" y="177" font-size="11" fill="currentColor" opacity=".7">只有路径与非口令单值</text>
+
+          <rect x="304" y="20" width="284" height="164" stroke-width="1.5" style="fill:var(--surface);stroke:var(--ops)"/>
+          <text x="320" y="44" font-size="13" font-weight="600" style="fill:var(--ops)">只有维护者看得见</text>
+          <line x1="320" y1="54" x2="572" y2="54" stroke-width="1" opacity=".3" style="stroke:var(--ops)"/>
+          <text x="320" y="76" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">本仓仓根 .pg-ops/</text>
+          <text x="320" y="93" font-size="11.5" fill="currentColor">db-llm 用 pg-ops 的</text>
+          <text x="320" y="110" font-size="11.5" fill="currentColor">/pg-dev-init 建自己的测试库</text>
+          <text x="320" y="135" font-size="11.5" fill="currentColor" font-weight="600">模型 MUST NOT 读其内容</text>
+          <text x="320" y="160" font-size="11.5" fill="currentColor">IO 经 pg-ops 的工具脚本</text>
+          <text x="320" y="177" font-size="11" fill="currentColor" opacity=".7">ADR-0002（pg-ops 侧原文）</text>
+
+          <rect x="600" y="20" width="292" height="164" stroke-width="1.5" style="fill:var(--alert-soft);stroke:var(--alert)"/>
+          <text x="616" y="44" font-size="13" font-weight="600" style="fill:var(--alert)">只有 DBA 执行</text>
+          <line x1="616" y1="54" x2="876" y2="54" stroke-width="1" opacity=".3" style="stroke:var(--alert)"/>
+          <text x="616" y="76" font-size="11.5" fill="currentColor" style="font-family:var(--f-mono)">.dbmeta/db-readonly/setup.sql</text>
+          <text x="616" y="99" font-size="11" fill="currentColor" style="font-family:var(--f-mono)">CREATE ROLE · GRANT</text>
+          <text x="616" y="116" font-size="11" fill="currentColor" style="font-family:var(--f-mono)">REVOKE · ALTER ROLE</text>
+          <text x="616" y="142" font-size="11.5" fill="currentColor">只需 CREATEROLE</text>
+          <text x="616" y="159" font-size="11.5" font-weight="600" style="fill:var(--alert)">不需要 superuser</text>
+          <text x="616" y="177" font-size="11" fill="currentColor" opacity=".7">执行完请删除脚本</text>
+
+          <path d="M 746 184 L 746 210" stroke-width="1.5" marker-end="url(#ar)" style="stroke:var(--alert)"/>
+          <rect x="8" y="212" width="884" height="72" stroke-width="2" style="fill:var(--surface);stroke:var(--alert)"/>
+          <text x="24" y="236" font-size="13" font-weight="600" style="fill:var(--alert)">永不发生 · 硬规则，无例外</text>
+          <text x="24" y="257" font-size="12" fill="currentColor">本仓的任何 skill、脚本、测试，以及大模型本身，MUST NOT 执行 CREATE ROLE / CREATE USER / GRANT / REVOKE / ALTER ROLE。</text>
+          <text x="24" y="276" font-size="12" fill="currentColor">包括「测试里扮演 DBA 跑一遍生成的脚本」这种形态——契约测试账号不得持有 CREATEROLE。</text>
+        </svg>
+        </div>
+        <figcaption>本仓只「生成」特权 SQL，永不「执行」它。「生成的 setup.sql 真能在非 superuser 下跑通」这条断言在本仓没有自动化真库锚，只有离线快照验其文本形态；真实执行证据来自消费仓 onboarding 时开发者那一次真跑。</figcaption>
+      </figure>
+
+      <div class="tw">
+      <table>
+        <thead><tr><th>边界</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td><strong>只生成，不执行</strong></td><td>本仓产出 <code>setup.sql</code>，执行永远是消费仓的 DBA。契约测试账号不得持有 <code>CREATEROLE</code>。</td></tr>
+          <tr><td><strong>凭据只走 <code>PGPASSWORD</code></strong></td><td>从不进 argv、从不字符串拼进 SQL。<code>db-collect.sh</code> 会把五个凭据值从 psql stderr 里抹掉再打印。</td></tr>
+          <tr><td><strong>不 source</strong></td><td><code>.dbllm.env</code> 按行解析为 <code>KEY=VALUE</code>，避免任意代码执行。</td></tr>
+          <tr><td><strong>生产守卫</strong></td><td>占位密码 <code>CHANGE_ME</code> 必须被拒。</td></tr>
+          <tr><td><strong>同库多仓</strong></td><td>每个消费仓 <strong>MUST 用不同 <code>DB_USER</code></strong>——作用域收敛会 <code>REVOKE</code> 掉不属于本仓 <code>SCHEMAS</code> 的 schema，共用一个角色会互相清权限。</td></tr>
+          <tr><td><strong>维护者须知（ADR-0002）</strong></td><td>本仓自己的开发/测试库经 <code>pg-ops</code> 的 <code>/pg-dev-init</code> 建，产物写进仓根 <code>.pg-ops/</code>——那份目录含 owner 凭据，模型 MUST NOT 读其内容。</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <!-- ============ 05 ============ -->
+    <section id="stuck">
+      <h2><span class="n">05</span>卡住了？速查</h2>
+      <div class="tw">
+      <table>
+        <thead><tr><th>现象</th><th>大概率原因</th><th>怎么办</th></tr></thead>
+        <tbody>
+          <tr><td><code>/pg-readonly-setup</code> 跑了一次没通</td><td><strong>正常</strong>——从零到可用要 2~3 次</td><td>照它说的交 DBA 执行 <code>setup.sql</code>，然后重跑</td></tr>
+          <tr><td>改了 <code>SCHEMAS</code>，权限没变</td><td>生成阶段<strong>零连接</strong>，不重跑 DBA 那步范围不会真的收窄</td><td>重跑供给拿到新 <code>setup.sql</code>，交 DBA 执行，再触发一次</td></tr>
+          <tr><td>认证被拒，但角色确实建过</td><td>经 PgBouncer 时无法细分「角色不存在」与「密码不同」</td><td>读 <code>.dbmeta/db-readonly/needs-human.md</code>，<strong>按里面的顺序</strong>走六项整改，别跳步</td></tr>
+          <tr><td><code>userlist-fragment.txt</code> 该不该贴</td><td>取决于 PgBouncer 认证模式</td><td><code>grep -E '^(auth_type|auth_file|auth_query)' &lt;pgbouncer.ini&gt;</code>：纯 <code>auth_query</code> 不适用；<code>auth_file</code> 才贴，贴完 reload 并<strong>删除该片段文件</strong></td></tr>
+          <tr><td>字典里某个 schema 整个不见了</td><td>多半<strong>连错库</strong>了，本次采集的 schema 集合比磁盘小</td><td>设计既定行为，被删的都是生成物。核对凭据后重跑收敛；<code>git checkout</code> 可恢复</td></tr>
+          <tr><td>同一份文件反复被判「已更新」却看不出差异</td><td>这是 bug</td><td>去看 <code>render.py</code> 的合并逻辑（<code>render_test.py</code> 有 fixture 单测）</td></tr>
+          <tr><td>升级时报非 ff</td><td>运行 checkout 被改过</td><td>运行 checkout 只读；改动应发生在开发 checkout</td></tr>
+          <tr><td><code>pytest</code> 跑契约测试失败</td><td>用错入口了——<code>tests/.env.test</code> 与 SSH 隧道都没起</td><td>唯一入口是 <code>bash tests/run-contract-test.sh</code>。这个失败意思是「入口错」，<strong>不是</strong>「这里没有测试库」</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <!-- ============ 06 ============ -->
+    <section id="ref">
+      <h2><span class="n">06</span>速查表</h2>
+      <h4>五个 skill</h4>
+      <div class="cards">
+        <div class="card ro"><span class="lane">只读通道</span><span class="nm">pg-readonly-setup</span><p>只读通道的单一、可重入入口：预检 → 供给 → 采集 → 冒烟。</p></div>
+        <div class="card ro"><span class="lane">只读通道</span><span class="nm">pg-dict</span><p>从 pg_catalog 生成 / 再生 <code>.dbmeta/</code> 数据字典。</p></div>
+        <div class="card ro"><span class="lane">只读通道</span><span class="nm">pg-query-ro</span><p>即席只读查询唯一入口，结果落文件而非终端。</p></div>
+        <div class="card ro"><span class="lane">只读通道</span><span class="nm">pg-sql-check</span><p>单条 SQL 语句的 PREPARE 零写入校验，读写语句同等覆盖。</p></div>
+        <div class="card tool"><span class="lane">工具</span><span class="nm">db-llm-upgrade</span><p>升级运行 checkout：pull → setup → 显示版本。</p></div>
+      </div>
+
+      <h4>六份 ADR — 想知道「为什么这么设计」时读</h4>
+      <div class="tw">
+      <table>
+        <thead><tr><th>ADR</th><th>讲什么</th></tr></thead>
+        <tbody>
+          <tr><td><code>0003</code></td><td>数据库工具住在独立的全局安装仓</td></tr>
+          <tr><td><code>0004</code></td><td>采集范围随 payload 走，不走 CLI</td></tr>
+          <tr><td><code>0005</code></td><td>套件的子系统划分</td></tr>
+          <tr><td><code>0006</code></td><td>DBA 凭据退出工具链，只读供给走 generate / verify</td></tr>
+          <tr><td><code>0007</code></td><td>sql-check 用 PREPARE 而非 EXPLAIN</td></tr>
+          <tr><td><code>0008</code></td><td>db-llm 是 pg-ops 的消费仓</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h4>相关文档</h4>
+      <ul>
+        <li><code>docs/skills-guide.md</code> — 这份手册的 Markdown 版（同内容，Mermaid 图）</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var map = {};
+  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section'));
+  if (!('IntersectionObserver' in window)) { return; }
+  var visible = {};
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { visible[e.target.id] = e.isIntersecting ? e.intersectionRatio : 0; });
+    var best = null, bestVal = 0;
+    sections.forEach(function (s) {
+      var v = visible[s.id] || 0;
+      if (v > bestVal) { bestVal = v; best = s.id; }
+    });
+    links.forEach(function (a) { a.classList.remove('on'); });
+    if (best && map[best]) { map[best].classList.add('on'); }
+  }, { rootMargin: '-10% 0px -60% 0px', threshold: [0, 0.15, 0.5, 1] });
+  sections.forEach(function (s) { io.observe(s); });
+  if (links[0]) { links[0].classList.add('on'); }
+})();
+</script>

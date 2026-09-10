@@ -1,0 +1,35 @@
+build/
+__pycache__/
+*.pyc
+.pytest_cache/
+.remember/
+*.env
+!*.env.example
+/openspec/issues/.recorder.lock
+/openspec/.ff0-ack
+.pg-ops/
+
+# 只读通道供给产物：setup.sql 与 userlist-fragment.txt 含明文口令。它们住在
+# .dbmeta/ 下（人读文件与只读线其它产物同处），而 .dbmeta/ 本身是被跟踪的
+# ——字典树本就该入库。这一行是在被跟踪的目录里挖的洞，删掉它不会让口令
+# 悄悄入库：shared/ro-generate.sh 生成前逐个 git check-ignore，没被忽略就
+# fail-loud 拒写（见该脚本 --allow-unignored 的说明）。
+.dbmeta/db-readonly/
+
+# 只读凭据配置本身（DB_HOST/PORT/NAME/USER/PASSWORD + SCHEMAS），git-ignored；
+# 模板 .dbmeta/.dbllm.env.example 照常追踪。
+.dbmeta/.dbllm.env
+
+# sdflow outside-voice run dirs (context/rc sidecars, never tracked)
+**/.outside-voice/
+
+# harness 创建的临时 git worktree（子代理隔离用），绝不入库
+.claude/worktrees/
+
+.idea/
+
+# 契约测试的真实连接凭据（含密码），绝不入库；模版 tests/.env.test.example 照常追踪
+/tests/.env.test
+
+# firecrawl local cache (research scratch, never tracked)
+.firecrawl/
