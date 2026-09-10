@@ -314,3 +314,5 @@ flowchart TB
 
 **相关文档**
 
+- [`skills-roadmap.md`](./skills-roadmap.md) — skill 规划的唯一真相源（清单 / 顺序 / 卡点 / 规格来源）
+- [`skills-guide.html`](./skills-guide.html) — 这份手册的 HTML 版（同内容）
