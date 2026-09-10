@@ -17,7 +17,9 @@ description: 升级 db-llm 套件运行 checkout（~/.skills/db-llm-skills）：
 脚本封装了以下升级三连，退出码 0 成功 / 1 pull 层失败（含 checkout 不存在、remote 不匹配、
 pull 失败、detached HEAD）/ 2 setup.sh 失败，每个失败分支输出 problem/cause/fix 三件套：
 
-1. **校验**：确认 `~/.skills/db-llm-skills/` 存在，且 remote 指向 `laodao-ai/db-llm`。
+1. **校验**：确认 `~/.skills/db-llm-skills/` 存在，且 remote 指向公开仓 `laodao-ai/db-llm-skills`。
+   指向开发仓 `laodao-ai/db-llm`（PRIVATE）时单独报错——两个仓名互为前缀，脚本的判定锚在
+   串尾，别改成裸子串匹配。
 2. **pull**：`git -C ~/.skills/db-llm-skills pull --ff-only`
    - 非 ff（本地被改过）→ 停下报告，不强推；提示"运行 checkout 只读，改动应发生在开发 checkout"。
    - detached HEAD → 提示先 `git -C ~/.skills/db-llm-skills checkout main`。
